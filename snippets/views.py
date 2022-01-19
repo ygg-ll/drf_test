@@ -1,50 +1,16 @@
-from django.http import HttpResponse, JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.parsers import JSONParser
-from snippets.serializers import SnippetSerializer
-from snippets.models import Snippet
+"""
+因为在 User 模型上'snippets'是反向关系，所以在使用类的时候默认是不包含的ModelSerializer，所以我们需要为它添加一个显式的字段。
+"""
+from django.contrib.auth.models import User
+from snippets.serializers import UserSerializer
+from rest_framework.viewsets import generics
 
 
-@csrf_exempt
-def snippet_list(request):
-    """
-     列出所有code snippets ,或者创建一个新的snippet
-    """
-    if request.method == 'GET':
-        snippets = Snippet.objects.all()
-        serializer = SnippetSerializer(snippets, many=True)
-        return JsonResponse(serializer.data, safe=False)
-    if request.method == 'POST':
-        data = JSONParser.parse(request)
-        serializer = SnippetSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        return JsonResponse(serializer.data, status=400)
+class UserList(generics.ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
 
 
-@csrf_exempt
-def snippet_detail(request, pk):
-    """
-    查看一个, 更新 or 删除 a code snippet.
-    """
-    try:
-        snippet = Snippet.objects.get(pk=pk)
-    except Snippet.DoesNotExist:
-        return HttpResponse(status=404)
-
-    if request.method == 'GET':
-        serializer = SnippetSerializer(snippet)
-        return JsonResponse(serializer.data)
-
-    elif request.method == 'PUT':
-        data = JSONParser().parse(request)
-        serializer = SnippetSerializer(snippet, data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data)
-        return JsonResponse(serializer.errors, status=400)
-
-    elif request.method == 'DELETE':
-        snippet.delete()
-        return HttpResponse(status=204)
+class UserDetail(generics.RetrieveAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
